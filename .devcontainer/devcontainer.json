@@ -1,0 +1,40 @@
+{
+  "name": "Proxmox K3s Homelab - DevOps Tools",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/terraform:1": {},
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+      "minikube": "none"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/python:1": {},
+    "ghcr.io/devcontainers/features/common-utils:2": {},
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+
+  "runArgs": [
+    "--network=host",
+    "--add-host=host.docker.internal:host-gateway",
+    "--privileged"
+  ],
+
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "HashiCorp.terraform",
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "ms-vscode.vscode-json"
+      ]
+    }
+  },
+  
+  "remoteUser": "vscode",
+  
+  "containerEnv": {
+    "GIT_EDITOR": "code --wait",
+    "PROXMOX_HOST": "192.168.1.1"
+  }
+}

@@ -1,0 +1,20 @@
+# WSL Configuration for Docker Desktop Host Networking
+# Create this file as /etc/wsl.conf in your WSL distribution
+
+[boot]
+systemd=true
+
+[network]
+generateResolvConf = false
+hostname = docker-host
+
+[interop]
+enabled = true
+appendWindowsPath = true
+
+# Network bridge configuration
+[experimental]
+networkingMode = mirrored
+dnsTunneling = true
+firewall = true
+autoProxy = true

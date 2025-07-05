@@ -1,0 +1,163 @@
+#!/bin/bash
+
+# K3s Installation Script
+# Template variables: mode, tokens, alt_names, disable, server_hosts, node_taints, datastores, http_proxy
+
+MODE="${mode}"
+TOKENS='${jsonencode(tokens)}'
+ALT_NAMES='${jsonencode(alt_names)}'
+DISABLE='${jsonencode(disable)}'
+SERVER_HOSTS='${jsonencode(server_hosts)}'
+NODE_TAINTS='${jsonencode(node_taints)}'
+DATASTORES='${jsonencode(datastores)}'
+HTTP_PROXY="${http_proxy}"
+
+# Set proxy environment variables
+export HTTP_PROXY="$HTTP_PROXY"
+export HTTPS_PROXY="$HTTP_PROXY"
+export http_proxy="$HTTP_PROXY"
+export https_proxy="$HTTP_PROXY"
+
+# Function to install K3s server
+install_k3s_server() {
+    echo "Installing K3s server..."
+    
+    # Build K3s server command
+    local cmd="curl -sfL https://get.k3s.io | sh -s - server"
+    
+    # Add token
+    local tokens_array=$(echo "$TOKENS" | jq -r '.[]')
+    if [ -n "$tokens_array" ]; then
+        local token=$(echo "$tokens_array" | head -n1)
+        cmd="$cmd --token=$token"
+    fi
+    
+    # Add alternative names for TLS SANs
+    local alt_names_array=$(echo "$ALT_NAMES" | jq -r '.[]')
+    if [ -n "$alt_names_array" ]; then
+        local sans=""
+        while IFS= read -r alt_name; do
+            if [ -n "$sans" ]; then
+                sans="$sans,$alt_name"
+            else
+                sans="$alt_name"
+            fi
+        done <<< "$alt_names_array"
+        if [ -n "$sans" ]; then
+            cmd="$cmd --tls-san=$sans"
+        fi
+    fi
+    
+    # Add disabled components
+    local disable_array=$(echo "$DISABLE" | jq -r '.[]')
+    if [ -n "$disable_array" ]; then
+        local disabled=""
+        while IFS= read -r component; do
+            if [ -n "$disabled" ]; then
+                disabled="$disabled,$component"
+            else
+                disabled="$component"
+            fi
+        done <<< "$disable_array"
+        if [ -n "$disabled" ]; then
+            cmd="$cmd --disable=$disabled"
+        fi
+    fi
+    
+    # Add node taints
+    local taints_array=$(echo "$NODE_TAINTS" | jq -r '.[]')
+    if [ -n "$taints_array" ]; then
+        while IFS= read -r taint; do
+            cmd="$cmd --node-taint=$taint"
+        done <<< "$taints_array"
+    fi
+    
+    # Add datastore configuration
+    local datastores_array=$(echo "$DATASTORES" | jq -r '.[]')
+    if [ -n "$datastores_array" ]; then
+        while IFS= read -r ds; do
+            local host=$(echo "$ds" | jq -r '.host')
+            local name=$(echo "$ds" | jq -r '.name')
+            local user=$(echo "$ds" | jq -r '.user')
+            local password=$(echo "$ds" | jq -r '.password')
+            
+            if [ "$host" != "null" ] && [ "$name" != "null" ] && [ "$user" != "null" ] && [ "$password" != "null" ]; then
+                local datastore_url="mysql://$user:$password@tcp($host)/$name"
+                cmd="$cmd --datastore-endpoint=$datastore_url"
+            fi
+        done <<< "$datastores_array"
+    fi
+    
+    # Execute the command
+    eval $cmd
+    
+    # Wait for K3s to be ready
+    until sudo k3s kubectl get nodes; do
+        echo "Waiting for K3s server to be ready..."
+        sleep 5
+    done
+    
+    echo "K3s server installation completed"
+}
+
+# Function to install K3s agent
+install_k3s_agent() {
+    echo "Installing K3s agent..."
+    
+    # Build K3s agent command
+    local cmd="curl -sfL https://get.k3s.io | sh -s - agent"
+    
+    # Add token
+    local tokens_array=$(echo "$TOKENS" | jq -r '.[]')
+    if [ -n "$tokens_array" ]; then
+        local token=$(echo "$tokens_array" | head -n1)
+        cmd="$cmd --token=$token"
+    fi
+    
+    # Add server URL
+    local server_hosts_array=$(echo "$SERVER_HOSTS" | jq -r '.[]')
+    if [ -n "$server_hosts_array" ]; then
+        local server_url=$(echo "$server_hosts_array" | head -n1)
+        cmd="$cmd --server=$server_url"
+    fi
+    
+    # Add node taints
+    local taints_array=$(echo "$NODE_TAINTS" | jq -r '.[]')
+    if [ -n "$taints_array" ]; then
+        while IFS= read -r taint; do
+            cmd="$cmd --node-taint=$taint"
+        done <<< "$taints_array"
+    fi
+    
+    # Execute the command
+    eval $cmd
+    
+    echo "K3s agent installation completed"
+}
+
+# Main installation logic
+main() {
+    echo "Starting K3s installation in mode: $MODE"
+    
+    # Update system and install jq for JSON parsing
+    sudo apt update
+    sudo apt install -y jq
+    
+    case "$MODE" in
+        "server")
+            install_k3s_server
+            ;;
+        "agent")
+            install_k3s_agent
+            ;;
+        *)
+            echo "Invalid mode: $MODE. Must be 'server' or 'agent'"
+            exit 1
+            ;;
+    esac
+    
+    echo "K3s installation completed successfully"
+}
+
+# Execute main function
+main

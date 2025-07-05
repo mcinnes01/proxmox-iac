@@ -1,0 +1,56 @@
+# Example Terraform Variables Configuration
+# Copy this to terraform.tfvars and customize for your environment
+
+# Proxmox Configuration
+proxmox_node         = "pve"
+node_template        = "ubuntu-template"
+proxmox_resource_pool = "k3s-cluster"
+
+# Network Configuration
+network_gateway      = "192.168.1.1"
+lan_subnet          = "192.168.1.0/24"
+control_plane_subnet = "192.168.1.2/29"  # 192.168.1.2 -> 192.168.1.8 (6 IPs)
+
+# Cluster Configuration
+cluster_name = "k3s"
+
+# Support Node Configuration
+support_node_settings = {
+  cores  = 2
+  memory = 4096
+  user   = "k3s"
+}
+
+# Master Node Configuration
+master_nodes_count = 2
+master_node_settings = {
+  cores  = 2
+  memory = 4096
+  user   = "k3s"
+}
+
+# Worker Node Pools
+node_pools = [
+  {
+    name   = "default"
+    size   = 2
+    subnet = "192.168.1.8/28"  # 192.168.1.8 -> 192.168.1.23 (14 IPs)
+    
+    # Optional: Override default settings
+    cores  = 2
+    memory = 4096
+    user   = "k3s"
+  }
+]
+
+# K3s Configuration
+k3s_disable_components = [
+  "traefik",
+  "servicelb"
+]
+
+# Optional: HTTP Proxy
+http_proxy = ""
+
+# Optional: DNS Server
+nameserver = "8.8.8.8"
