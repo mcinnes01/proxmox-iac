@@ -39,7 +39,7 @@ check_prerequisites() {
     done
     
     # Check for Terraform configuration
-    if [ ! -f "terraform/proxmox-k3s/versions.tf" ]; then
+    if [ ! -f "terraform/versions.tf" ]; then
         log_error "Terraform configuration not found. Make sure you're in the project root."
         exit 1
     fi
@@ -50,7 +50,7 @@ check_prerequisites() {
 setup_configuration() {
     log_step "Setting up configuration files..."
     
-    cd terraform/proxmox-k3s
+    cd terraform
     
     # Copy provider configuration if it doesn't exist
     if [ ! -f "main.tf" ]; then
@@ -78,20 +78,57 @@ setup_configuration() {
 }
 
 check_authentication() {
-    log_step "Checking Proxmox authentication..."
+    log_step "Checking Proxmox configuration..."
     
-    if [ -z "$PM_USER" ] || [ -z "$PM_PASS" ]; then
-        log_warning "Proxmox authentication not configured"
-        echo ""
-        echo "Please set environment variables for Proxmox authentication:"
-        echo "export PM_USER=\"terraform-prov@pve\""
-        echo "export PM_PASS=\"your-password\""
-        echo ""
-        echo "Or run: source .env  # if you have a .env file"
+    # Check if terraform.tfvars exists
+    if [ ! -f "terraform.tfvars" ]; then
+        log_error "terraform.tfvars not found"
+        echo "Please copy terraform.tfvars.example to terraform.tfvars and customize it:"
+        echo "  cp terraform.tfvars.example terraform.tfvars"
+        echo "  nano terraform.tfvars"
         exit 1
     fi
     
-    log_success "Proxmox authentication configured"
+    # Check authentication options
+    if [ -n "$PM_PASS" ] && [ -n "$PM_USER" ]; then
+        log_info "Using environment variables for Proxmox authentication"
+        export TF_VAR_proxmox_username="$PM_USER"
+        export TF_VAR_proxmox_password="$PM_PASS"
+    elif grep -q "your-password-here" terraform.tfvars; then
+        log_warning "Proxmox password not configured"
+        echo ""
+        echo "Choose one of these options:"
+        echo "1. Set environment variables:"
+        echo "   export PM_USER=\"terraform-prov@pve\""
+        echo "   export PM_PASS=\"your-actual-password\""
+        echo ""
+        echo "2. Or edit terraform.tfvars directly:"
+        echo "   nano terraform.tfvars"
+        echo ""
+        exit 1
+    else
+        log_info "Using terraform.tfvars for Proxmox authentication"
+    fi
+    
+    # Check if SSH keys exist
+    SSH_PRIVATE_KEY=$(grep -o 'ssh_private_key_file = "[^"]*"' terraform.tfvars | cut -d'"' -f2)
+    SSH_PUBLIC_KEY=$(grep -o 'ssh_public_key_file = "[^"]*"' terraform.tfvars | cut -d'"' -f2)
+    
+    # Expand tilde to home directory
+    SSH_PRIVATE_KEY="${SSH_PRIVATE_KEY/#\~/$HOME}"
+    SSH_PUBLIC_KEY="${SSH_PUBLIC_KEY/#\~/$HOME}"
+    
+    if [ ! -f "$SSH_PRIVATE_KEY" ] || [ ! -f "$SSH_PUBLIC_KEY" ]; then
+        log_warning "SSH keys not found:"
+        echo "  Private key: $SSH_PRIVATE_KEY"
+        echo "  Public key: $SSH_PUBLIC_KEY"
+        echo ""
+        echo "Generate SSH keys with:"
+        echo "  ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N ''"
+        exit 1
+    fi
+    
+    log_success "Configuration validated"
 }
 
 validate_configuration() {
@@ -142,7 +179,7 @@ get_kubeconfig() {
     terraform output -raw k3s_kubeconfig > kubeconfig.yaml
     
     if [ -f "kubeconfig.yaml" ]; then
-        log_success "Kubeconfig saved to: terraform/proxmox-k3s/kubeconfig.yaml"
+        log_success "Kubeconfig saved to: terraform/kubeconfig.yaml"
         echo ""
         log_info "To use the cluster:"
         echo "export KUBECONFIG=\"$(pwd)/kubeconfig.yaml\""
@@ -183,7 +220,7 @@ show_cluster_info() {
 destroy_cluster() {
     log_step "Destroying K3s cluster..."
     
-    cd terraform/proxmox-k3s
+    cd terraform
     
     log_warning "This will destroy ALL cluster resources!"
     read -p "Are you sure? Type 'yes' to confirm: " -r
@@ -230,8 +267,8 @@ show_help() {
     echo "  - Environment variables: PM_USER, PM_PASS"
     echo ""
     echo "Setup:"
-    echo "  1. Edit terraform/proxmox-k3s/main.tf with your Proxmox API URL"
-    echo "  2. Edit terraform/proxmox-k3s/terraform.tfvars with your settings"
+    echo "  1. Edit terraform/main.tf with your Proxmox API URL"
+    echo "  2. Edit terraform/terraform.tfvars with your settings"
     echo "  3. Set authentication: export PM_USER=... PM_PASS=..."
     echo "  4. Run: $0 deploy"
     echo ""
@@ -261,12 +298,12 @@ main() {
             ;;
         "kubeconfig")
             check_prerequisites
-            cd terraform/proxmox-k3s
+            cd terraform
             get_kubeconfig
             ;;
         "info")
             check_prerequisites
-            cd terraform/proxmox-k3s
+            cd terraform
             show_cluster_info
             ;;
         "ssh")
