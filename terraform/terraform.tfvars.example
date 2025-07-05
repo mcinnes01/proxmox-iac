@@ -1,7 +1,28 @@
 # Example Terraform Variables Configuration
 # Copy this to terraform.tfvars and customize for your environment
 
-# Proxmox Configuration
+# Proxmox API Configuration
+proxmox_api_url    = "https://192.168.1.1:8006/api2/json"
+proxmox_username   = "root@pam"
+proxmox_insecure   = true
+
+# Authentication - Choose ONE method:
+# Method 1: API Token (Recommended)
+proxmox_api_token_id     = "terraform"
+proxmox_api_token_secret = "your-token-secret-here"
+proxmox_password         = ""
+
+# Method 2: Password Authentication (Alternative)
+# proxmox_password         = "your-password-here"
+# proxmox_api_token_id     = ""
+# proxmox_api_token_secret = ""  # Set to false if using valid SSL certificates
+
+# SSH Configuration
+ssh_user             = "k3s"
+ssh_private_key_file = "~/.ssh/id_rsa"
+ssh_public_key_file  = "~/.ssh/id_rsa.pub"
+
+# Proxmox Node Configuration
 proxmox_node         = "pve"
 node_template        = "ubuntu-template"
 proxmox_resource_pool = "k3s-cluster"

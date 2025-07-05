@@ -13,6 +13,48 @@ This repository provides Infrastructure as Code for creating production-ready K3
 - **External Database**: MariaDB for cluster state
 - **Load Balancer**: Built-in nginx for K3s API
 
+## Quick Start
+
+1. **Configure your deployment**:
+   ```bash
+   cp terraform/terraform.tfvars.example terraform/terraform.tfvars
+   nano terraform/terraform.tfvars  # Edit with your settings
+   ```
+
+2. **Deploy the cluster**:
+   ```bash
+   ./deploy-k3s.sh deploy
+   ```
+
+3. **Access your cluster**:
+   ```bash
+   export KUBECONFIG="$(pwd)/terraform/kubeconfig.yaml"
+   kubectl get nodes
+   ```
+
+## Automated User Setup
+
+The deploy script automatically creates a dedicated `terraform-prov@pve` user for secure deployments:
+
+- **Automatic Creation**: Script creates user with random password
+- **Minimal Privileges**: Assigned `PVEVMAdmin` role (VM management only)
+- **Secure Storage**: Credentials saved to `terraform.tfvars` (git-ignored)
+- **Authentication Options**: Supports both password and API token authentication
+
+### Manual User Creation
+
+You can also create the user manually:
+
+```bash
+# Create dedicated user for terraform operations
+./deploy-k3s.sh create-user
+```
+
+Or create it in Proxmox web UI:
+1. Go to Datacenter → Permissions → Users
+2. Create user: `terraform-prov@pve`
+3. Assign role: `PVEVMAdmin` at path `/`
+
 ## Architecture
 
 ### Components

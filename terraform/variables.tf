@@ -1,3 +1,64 @@
+variable "proxmox_api_url" {
+  description = "Proxmox API URL (e.g., https://192.168.1.1:8006/api2/json)"
+  type        = string
+  validation {
+    condition     = can(regex("^https?://.*", var.proxmox_api_url))
+    error_message = "The proxmox_api_url must be a valid URL starting with http:// or https://."
+  }
+}
+
+variable "proxmox_username" {
+  description = "Proxmox username for authentication (e.g., terraform-prov@pve or root@pam)"
+  type        = string
+  default     = "root@pam"
+}
+
+variable "proxmox_password" {
+  description = "Proxmox password for authentication (leave empty if using API token)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "proxmox_api_token_id" {
+  description = "Proxmox API token ID (e.g., terraform)"
+  type        = string
+  default     = ""
+}
+
+variable "proxmox_api_token_secret" {
+  description = "Proxmox API token secret"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "proxmox_insecure" {
+  description = "Skip TLS verification for Proxmox API"
+  type        = bool
+  default     = true
+}
+
+# SSH Configuration
+variable "ssh_user" {
+  description = "SSH username for connecting to nodes"
+  type        = string
+  default     = "k3s"
+}
+
+variable "ssh_private_key_file" {
+  description = "Path to SSH private key file"
+  type        = string
+  default     = "~/.ssh/id_rsa"
+}
+
+variable "ssh_public_key_file" {
+  description = "Path to SSH public key file"
+  type        = string
+  default     = "~/.ssh/id_rsa.pub"
+}
+
+# Proxmox Node Configuration
 variable "proxmox_node" {
   description = "Proxmox node to create VMs on."
   type        = string

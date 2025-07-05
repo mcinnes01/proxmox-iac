@@ -28,7 +28,7 @@ chmod 700 ~/.ssh
 # Terraform setup
 echo "🏗️ Terraform setup information:"
 echo "   • Version: $(terraform version -json | jq -r '.terraform_version')"
-echo "   • Working directory: /workspaces/proxmox-iac/terraform/proxmox-k3s"
+echo "   • Working directory: /workspaces/proxmox-iac/terraform"
 echo "   • Configure your provider.tf and terraform.tfvars files"
 
 # SSH key setup
