@@ -19,8 +19,8 @@ proxmox_password         = ""
 
 # SSH Configuration
 ssh_user             = "k3s"
-ssh_private_key_file = "~/.ssh/id_rsa"
-ssh_public_key_file  = "~/.ssh/id_rsa.pub"
+ssh_private_key_file = "/workspaces/proxmox-iac/id_rsa"
+ssh_public_key_file  = "/workspaces/proxmox-iac/id_rsa.pub"
 
 # Proxmox Node Configuration
 proxmox_node         = "pve"

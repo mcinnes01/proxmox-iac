@@ -121,7 +121,6 @@ variable "support_node_settings" {
     cores          = optional(number),
     sockets        = optional(number),
     memory         = optional(number),
-    storage_type   = optional(string),
     storage_id     = optional(string),
     disk_size      = optional(string),
     user           = optional(string),
@@ -144,7 +143,6 @@ variable "master_node_settings" {
     cores          = optional(number),
     sockets        = optional(number),
     memory         = optional(number),
-    storage_type   = optional(string),
     storage_id     = optional(string),
     disk_size      = optional(string),
     user           = optional(string),
@@ -163,14 +161,13 @@ variable "node_pools" {
 
     taints = optional(list(string)),
 
-    cores        = optional(number),
-    sockets      = optional(number),
-    memory       = optional(number),
-    storage_type = optional(string),
-    storage_id   = optional(string),
-    disk_size    = optional(string),
-    user         = optional(string),
-    network_tag  = optional(number),
+    cores       = optional(number),
+    sockets     = optional(number),
+    memory      = optional(number),
+    storage_id  = optional(string),
+    disk_size   = optional(string),
+    user        = optional(string),
+    network_tag = optional(number),
 
     template = optional(string),
 

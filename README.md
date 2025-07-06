@@ -1,296 +1,150 @@
 # Proxmox K3s Infrastructure as Code
 
-A fully automated Terraform configuration for deploying K3s clusters on Proxmox VE, following the [HeekoOfficial/terraform-proxmox-k3s](https://github.com/HeekoOfficial/terraform-proxmox-k3s) pattern for pure Terraform automation with no manual intervention.
+A fully automated Terraform configuration for deploying K3s clusters on Proxmox VE using the **bpg/proxmox** provider (actively maintained fork).
 
 ## Overview
 
 This repository provides Infrastructure as Code for creating production-ready K3s clusters on Proxmox VE using:
 
 - **Pure Terraform**: No Ansible or manual steps required
-- **Telmate/proxmox Provider**: Industry-standard Proxmox integration
+- **bpg/proxmox Provider**: Modern, actively maintained Proxmox integration
 - **Static MAC Addresses**: Reproducible DHCP reservations
-- **Node Pools**: Flexible worker node management
+- **Automated Templates**: Automatic Ubuntu cloud image download and template creation
 - **External Database**: MariaDB for cluster state
 - **Load Balancer**: Built-in nginx for K3s API
+
+## Features
+
+- **Fully Automated**: Cloud image download, template creation, and VM deployment
+- **High Availability**: Multi-master K3s cluster with external database
+- **Modern Provider**: Uses bpg/proxmox provider with latest features
+- **Cloud-Init**: Automated VM configuration and K3s installation
+- **Reproducible**: Static MAC addresses for consistent DHCP reservations
 
 ## Quick Start
 
 1. **Configure your deployment**:
    ```bash
-   cp terraform/terraform.tfvars.example terraform/terraform.tfvars
-   nano terraform/terraform.tfvars  # Edit with your settings
+   cd terraform
+   cp terraform.tfvars.example terraform.tfvars
+   nano terraform.tfvars  # Edit with your settings
    ```
 
-2. **Deploy the cluster**:
+2. **Initialize and deploy**:
    ```bash
-   ./deploy-k3s.sh deploy
+   terraform init
+   terraform plan
+   terraform apply
    ```
 
 3. **Access your cluster**:
    ```bash
-   export KUBECONFIG="$(pwd)/terraform/kubeconfig.yaml"
+   # SSH keys and kubeconfig will be generated automatically
+   export KUBECONFIG="$(pwd)/kubeconfig.yaml"
    kubectl get nodes
    ```
 
-## Automated User Setup
+## Architecture
 
-The deploy script automatically creates a dedicated `terraform-prov@pve` user for secure deployments:
+This configuration creates:
 
-- **Automatic Creation**: Script creates user with random password
-- **Minimal Privileges**: Assigned `PVEVMAdmin` role (VM management only)
-- **Secure Storage**: Credentials saved to `terraform.tfvars` (git-ignored)
-- **Authentication Options**: Supports both password and API token authentication
+1. **Ubuntu Template**: Creates a basic Ubuntu template for VM cloning
+2. **Support Node**: MariaDB database server and nginx load balancer  
+3. **Master Nodes**: K3s control plane nodes (configurable count)
+4. **Worker Nodes**: K3s worker nodes (optional, configurable pools)
 
-### Manual User Creation
+## Configuration
 
-You can also create the user manually:
+Key configuration options in `terraform.tfvars`:
 
-```bash
-# Create dedicated user for terraform operations
-./deploy-k3s.sh create-user
+```hcl
+# Proxmox Connection
+proxmox_api_url  = "https://192.168.1.1:8006/api2/json"
+proxmox_username = "terraform-prov@pve"
+proxmox_password = "your-password"
+
+# Network Configuration
+network_gateway = "192.168.1.1"
+lan_subnet      = "192.168.1.0/24"
+control_plane_subnet = "192.168.1.0/29"
+
+# Cluster Configuration
+cluster_name       = "homelab"
+master_nodes_count = 1
+
+# Node Settings
+support_node_settings = {
+  cores          = 1
+  memory         = 2048
+  storage_id     = "local-lvm"
+  disk_size      = "20G"
+  network_bridge = "vmbr0"
+}
+
+master_node_settings = {
+  cores          = 1
+  memory         = 2048
+  storage_id     = "local-lvm"
+  disk_size      = "20G"
+  network_bridge = "vmbr0"
+}
+```
+
+## Provider Information
+
+This configuration uses the **bpg/proxmox** provider instead of the legacy Telmate provider:
+
+- **Source**: `bpg/proxmox`
+- **Version**: `>= 0.79.0`
+- **Features**: Modern API support, better cloud-init integration, improved resource management
+- **Documentation**: [https://registry.terraform.io/providers/bpg/proxmox/latest](https://registry.terraform.io/providers/bpg/proxmox/latest)
+
+## Requirements
+
+- Proxmox VE 7.0+
+- Terraform 1.0+
+- Network access to Ubuntu cloud images
+- `local-lvm` storage (or configure alternative storage)
+- SSH access to Proxmox host (for template creation)
+
+## File Structure
+
+```
+├── terraform/
+│   ├── main.tf              # Provider configuration
+│   ├── versions.tf          # Provider version constraints
+│   ├── variables.tf         # Variable definitions
+│   ├── terraform.tfvars     # Configuration values
+│   ├── support_node.tf      # Support node (DB + LB) + Template
+│   ├── master_nodes.tf      # K3s master nodes
+│   └── outputs.tf           # Output values
+├── .devcontainer/           # VS Code dev container
+└── README.md               # This file
+```
+
+## Outputs
+
+After deployment, Terraform provides:
+
+- **support_node_ip**: IP address of the support node
+- **master_node_ips**: List of master node IP addresses
+- **k3s_server_token**: K3s server token (sensitive)
+- **Database passwords**: MariaDB passwords (sensitive)
+
+## Development
+
+This repository includes a VS Code devcontainer with all required tools:
+
+- Terraform
+- kubectl
+- Docker
+- GitHub CLI
+- Python tools
+
+## License
+
+This project is open source and available under the MIT License.
 ```
 
 Or create it in Proxmox web UI:
 1. Go to Datacenter → Permissions → Users
-2. Create user: `terraform-prov@pve`
-3. Assign role: `PVEVMAdmin` at path `/`
-
-## Architecture
-
-### Components
-
-1. **Support Node**: MariaDB database + nginx load balancer
-2. **Master Nodes**: K3s control plane (HA configuration)
-3. **Worker Node Pools**: Scalable worker nodes by pool
-
-### Network Design
-
-- **Control Plane Subnet**: Support + master nodes
-- **Worker Subnets**: Dedicated subnets per node pool
-- **Static IP Assignment**: Deterministic IP allocation
-- **DHCP Exclusions**: Prevents IP conflicts
-
-## Quick Start
-
-### Prerequisites
-
-- Proxmox VE 7.0+
-- Ubuntu cloud-init template
-- Two non-DHCP IP ranges
-- Terraform 1.0+
-
-### Basic Deployment
-
-```bash
-cd terraform/proxmox-k3s
-
-# Copy and configure
-cp provider.tf.example main.tf
-cp terraform.tfvars.example terraform.tfvars
-
-# Edit configuration files
-vim main.tf        # Set Proxmox API URL
-vim terraform.tfvars  # Configure your environment
-
-# Authenticate
-export PM_USER="terraform-prov@pve"
-export PM_PASS="your-password"
-
-# Deploy
-terraform init
-terraform apply
-
-# Get kubeconfig
-terraform output -raw k3s_kubeconfig > kubeconfig.yaml
-export KUBECONFIG="kubeconfig.yaml"
-kubectl get nodes
-```
-
-## Key Features
-
-### HeekoOfficial Pattern Compliance
-
-- **Telmate Provider**: Uses `Telmate/proxmox` provider (industry standard)
-- **Static MACs**: Reproducible network configuration
-- **Node Pools**: Flexible scaling and workload isolation
-- **Cloud-Init**: Automated VM configuration
-- **Remote Provisioners**: Direct K3s installation via SSH
-
-### Production Ready
-
-- **High Availability**: Multi-master with external datastore
-- **External Database**: MariaDB on dedicated support node  
-- **Load Balancing**: nginx proxy for K3s API
-- **Rolling Updates**: Zero-downtime node pool updates
-- **Security**: Firewall-enabled VMs with proper isolation
-
-### Flexible Configuration
-
-```hcl
-# Multiple node pools with different specs
-node_pools = [
-  {
-    name   = "general"
-    size   = 3
-    subnet = "192.168.1.208/28"
-    cores  = 2
-    memory = 4096
-  },
-  {
-    name     = "compute"
-    size     = 2
-    subnet   = "192.168.1.224/28"
-    cores    = 8
-    memory   = 16384
-    template = "ubuntu-compute-template"
-  }
-]
-```
-
-## Repository Structure
-
-```
-terraform/proxmox-k3s/
-├── versions.tf              # Provider requirements
-├── variables.tf             # Input variables
-├── support_node.tf          # Support node (DB + LB)
-├── master_nodes.tf          # K3s masters
-├── worker_nodes.tf          # K3s worker pools
-├── outputs.tf               # Cluster outputs
-├── scripts/
-│   ├── install-support-apps.sh.tftpl    # MariaDB + nginx setup
-│   └── install-k3s-server.sh.tftpl      # K3s installation
-├── provider.tf.example      # Provider configuration template
-├── terraform.tfvars.example # Variables template
-└── README.md                # Detailed documentation
-```
-
-## Configuration Examples
-
-### Minimal Configuration
-
-```hcl
-# terraform.tfvars
-proxmox_node         = "pve"
-node_template        = "ubuntu-template"
-network_gateway      = "192.168.1.1"
-lan_subnet          = "192.168.1.0/24"
-control_plane_subnet = "192.168.1.200/29"
-
-node_pools = [
-  {
-    name   = "default"
-    size   = 2
-    subnet = "192.168.1.208/28"
-  }
-]
-```
-
-### Advanced Configuration
-
-```hcl
-# Custom node specifications
-support_node_settings = {
-  cores  = 4
-  memory = 8192
-  user   = "k3s"
-}
-
-master_node_settings = {
-  cores  = 4
-  memory = 8192
-}
-
-# Multiple worker pools
-node_pools = [
-  {
-    name   = "general"
-    size   = 3
-    subnet = "192.168.1.208/28"
-  },
-  {
-    name   = "gpu"
-    size   = 1
-    subnet = "192.168.1.224/28"
-    taints = ["gpu=true:NoSchedule"]
-    template = "ubuntu-gpu-template"
-  }
-]
-
-# K3s customization
-k3s_disable_components = ["traefik", "servicelb"]
-api_hostnames = ["k3s.local"]
-```
-
-## Network Planning
-
-### IP Range Requirements
-
-You need **two non-DHCP IP ranges**:
-
-1. **Control Plane**: Support + master nodes
-   - Example: `192.168.1.200/29` (8 IPs)
-   - Support: 192.168.1.200
-   - Masters: 192.168.1.201, 192.168.1.202
-
-2. **Worker Pools**: One subnet per pool
-   - Example: `192.168.1.208/28` (16 IPs)
-   - Workers: 192.168.1.208, 192.168.1.209, etc.
-
-### DHCP Exclusions
-
-**Critical**: Configure your router to exclude these ranges from DHCP to prevent IP conflicts.
-
-## Operations
-
-### Scaling
-
-Add worker nodes by modifying node pools:
-
-```hcl
-node_pools = [
-  {
-    name   = "default"
-    size   = 5  # Increased from 2
-    subnet = "192.168.1.208/28"
-  }
-]
-```
-
-### Rolling Updates
-
-Update node templates using rolling deployment:
-
-1. Add new pool with updated template
-2. Cordon and drain old nodes
-3. Remove old pool configuration
-
-### Monitoring
-
-```bash
-# Cluster health
-kubectl get nodes
-kubectl get pods -A
-
-# Individual node status
-ssh k3s@node-ip "sudo systemctl status k3s"
-
-## Features
-
-- **Pure Terraform**: No external dependencies or state management
-- **Automated K3s Deployment**: Complete cluster setup in one command
-- **Network Isolation**: Proper VLAN and subnet configuration
-- **Secure by Default**: SSH key authentication and proper firewall rules
-- **Scalable**: Easy to add/remove nodes
-- **Production Ready**: Based on proven patterns and best practices
-
-## Support
-
-For issues specific to this configuration:
-1. Check the [detailed README](terraform/proxmox-k3s/README.md)
-2. Review [HeekoOfficial documentation](https://github.com/HeekoOfficial/terraform-proxmox-k3s)
-3. Validate your Proxmox template and network configuration
-
-## License
-
-This configuration follows the MIT license pattern from the original HeekoOfficial repository.
