@@ -10,12 +10,13 @@
       "helm": "latest",
       "minikube": "none"
     },
-    "ghcr.io/devcontainers/features/terraform:1": {},
     "ghcr.io/devcontainers-extra/features/terramate:1": {},
     "ghcr.io/devcontainers-extra/features/talosctl:1": {},
     "ghcr.io/goldsam/dev-container-features/flux2:1": {},
     "ghcr.io/audacioustux/devcontainers/cilium:1": {}
   },
+  
+  "postCreateCommand": "curl -fsSL https://releases.hashicorp.com/terraform/1.12.2/terraform_1.12.2_linux_amd64.zip -o terraform.zip && unzip terraform.zip && sudo mv terraform /usr/local/bin/ && rm terraform.zip && terraform version",
   
   "customizations": {
     "vscode": {
