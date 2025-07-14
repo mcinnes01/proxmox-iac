@@ -1,0 +1,140 @@
+# Cilium CNI configuration for Talos cluster
+# This provides advanced networking capabilities and Gateway API support
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kube-system
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cilium
+  namespace: kube-system
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: cilium
+      version: 1.17.5
+      sourceRef:
+        kind: HelmRepository
+        name: cilium
+        namespace: flux-system
+  values:
+    autoDirectNodeRoutes: true
+    bpf:
+      masquerade: true
+      hostLegacyRouting: true
+    cni:
+      exclusive: false
+    cgroup:
+      automount:
+        enabled: false
+      hostRoot: /sys/fs/cgroup
+    dashboards:
+      enabled: true
+    endpointRoutes:
+      enabled: true
+    envoy:
+      rollOutPods: true
+      prometheus:
+        serviceMonitor:
+          enabled: true
+    gatewayAPI:
+      enabled: true
+    hubble:
+      enabled: true
+      relay:
+        enabled: true
+      ui:
+        enabled: true
+    ipam:
+      mode: kubernetes
+    ipv4NativeRoutingCIDR: "10.42.0.0/16"
+    k8sServiceHost: 192.168.1.2
+    k8sServicePort: 6443
+    kubeProxyReplacement: true
+    kubeProxyReplacementHealthzBindAddr: 0.0.0.0:10256
+    l2announcements:
+      enabled: true
+    loadBalancer:
+      algorithm: maglev
+      mode: dsr
+    localRedirectPolicy: true
+    operator:
+      dashboards:
+        enabled: true
+      prometheus:
+        enabled: true
+        serviceMonitor:
+          enabled: true
+      replicas: 1
+      rollOutPods: true
+    prometheus:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+        trustCRDsExist: true
+    rollOutCiliumPods: true
+    routingMode: native
+    securityContext:
+      capabilities:
+        ciliumAgent:
+          - CHOWN
+          - KILL
+          - NET_ADMIN
+          - NET_RAW
+          - IPC_LOCK
+          - SYS_ADMIN
+          - SYS_RESOURCE
+          - DAC_OVERRIDE
+          - FOWNER
+          - SETGID
+          - SETUID
+        cleanCiliumState:
+          - NET_ADMIN
+          - SYS_ADMIN
+          - SYS_RESOURCE
+    socketLB:
+      hostNamespaceOnly: true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cilium-bgp-config
+  namespace: kube-system
+data:
+  config.yaml: |
+    peers:
+      - peer-address: 192.168.1.1
+        peer-asn: 64512
+        my-asn: 64513
+        peer-port: 179
+    address-pools:
+      - name: default
+        protocol: bgp
+        addresses:
+          - 192.168.1.200-192.168.1.250
+---
+apiVersion: cilium.io/v2alpha1
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: pool
+  namespace: kube-system
+spec:
+  allowFirstLastIPs: "No"
+  blocks:
+    - cidr: 192.168.1.200/29
+---
+apiVersion: cilium.io/v2alpha1
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: l2-policy
+  namespace: kube-system
+spec:
+  loadBalancerIPs: true
+  nodeSelector:
+    matchLabels:
+      kubernetes.io/os: linux

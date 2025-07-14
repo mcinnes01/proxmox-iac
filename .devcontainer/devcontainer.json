@@ -1,22 +1,20 @@
 {
-  "name": "Proxmox K3s Homelab - DevOps Tools",
+  "name": "Talos Proxmox Homelab - DevOps Tools",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
   
   "features": {
     "ghcr.io/devcontainers/features/terraform:1": {},
+    "ghcr.io/devcontainers/features/azure-cli:1": {},
     "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
       "minikube": "none"
     },
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/devcontainers/features/python:1": {},
-    "ghcr.io/devcontainers/features/common-utils:2": {},
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    "ghcr.io/devcontainers/features/common-utils:2": {}
   },
 
-  "runArgs": [
-    "--network=host",
-    "--add-host=host.docker.internal:host-gateway",
-    "--privileged"
+  "mounts": [
+    "source=${localEnv:USERPROFILE}\\.azure,target=/home/vscode/.azure,type=bind,consistency=cached"
   ],
 
   "postCreateCommand": "bash .devcontainer/setup.sh",
@@ -26,8 +24,19 @@
       "extensions": [
         "HashiCorp.terraform",
         "ms-kubernetes-tools.vscode-kubernetes-tools",
-        "ms-vscode.vscode-json"
-      ]
+        "ms-vscode.vscode-json",
+        "ms-vscode.makefile-tools",
+        "redhat.vscode-yaml",
+        "ms-python.python",
+        "ms-vscode.powershell",
+        "github.copilot",
+        "signageos.signageos-vscode-sops"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terraform.languageServer.enable": true,
+        "terraform.validation.enableEnhancedValidation": true
+      }
     }
   },
   
@@ -35,6 +44,6 @@
   
   "containerEnv": {
     "GIT_EDITOR": "code --wait",
-    "PROXMOX_HOST": "192.168.1.1"
+    "EDITOR": "code --wait"
   }
 }

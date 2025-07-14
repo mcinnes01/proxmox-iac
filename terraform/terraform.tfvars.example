@@ -1,77 +1,29 @@
-# Example Terraform Variables Configuration
-# Copy this to terraform.tfvars and customize for your environment
+# Example Terraform variables for Talos Proxmox deployment
+# Copy this file to terraform.tfvars and fill in your values
 
-# Proxmox API Configuration
-proxmox_api_url    = "https://192.168.1.1:8006/api2/json"
-proxmox_username   = "root@pam"
-proxmox_insecure   = true
-
-# Authentication - Choose ONE method:
-# Method 1: API Token (Recommended)
-proxmox_api_token_id     = "terraform"
-proxmox_api_token_secret = "your-token-secret-here"
-proxmox_password         = ""
-
-# Method 2: Password Authentication (Alternative)
-# proxmox_password         = "your-password-here"
-# proxmox_api_token_id     = ""
-# proxmox_api_token_secret = ""  # Set to false if using valid SSL certificates
-
-# SSH Configuration
-ssh_user             = "k3s"
-ssh_private_key_file = "/workspaces/proxmox-iac/id_rsa"
-ssh_public_key_file  = "/workspaces/proxmox-iac/id_rsa.pub"
-
-# Proxmox Node Configuration
-proxmox_node         = "pve"
-node_template        = "ubuntu-template"
-proxmox_resource_pool = "k3s-cluster"
-
-# Network Configuration
-network_gateway      = "192.168.1.1"
-lan_subnet          = "192.168.1.0/24"
-control_plane_subnet = "192.168.1.2/29"  # 192.168.1.2 -> 192.168.1.8 (6 IPs)
-
-# Cluster Configuration
-cluster_name = "k3s"
-
-# Support Node Configuration
-support_node_settings = {
-  cores  = 2
-  memory = 4096
-  user   = "k3s"
+proxmox = {
+  name         = "pve"
+  cluster_name = "homelab"
+  endpoint     = "https://192.168.1.10:8006"
+  insecure     = true
+  username     = "root"
+  api_token    = "root@pam!terraform=your-api-token-here"
 }
 
-# Master Node Configuration
-master_nodes_count = 2
-master_node_settings = {
-  cores  = 2
-  memory = 4096
-  user   = "k3s"
+# Azure Key Vault Configuration (optional)
+azure = {
+  tenant_id = "your-azure-tenant-id"
+  object_id = "your-azure-object-id"  # Get with: az ad signed-in-user show --query id -o tsv
+  location  = "East US"
 }
 
-# Worker Node Pools
-node_pools = [
-  {
-    name   = "default"
-    size   = 2
-    subnet = "192.168.1.8/28"  # 192.168.1.8 -> 192.168.1.23 (14 IPs)
-    
-    # Optional: Override default settings
-    cores  = 2
-    memory = 4096
-    user   = "k3s"
-  }
-]
+# Enable/disable Azure Key Vault integration
+enable_keyvault = true
 
-# K3s Configuration
-k3s_disable_components = [
-  "traefik",
-  "servicelb"
-]
-
-# Optional: HTTP Proxy
-http_proxy = ""
-
-# Optional: DNS Server
-nameserver = "8.8.8.8"
+# Secrets to store in Azure Key Vault (optional)
+keyvault_secrets = {
+  # Example secrets:
+  # "proxmox-api-token" = "your-proxmox-api-token"
+  # "flux-github-token" = "your-github-personal-access-token"
+  # "cluster-ca-cert"   = "your-cluster-ca-certificate"
+}
