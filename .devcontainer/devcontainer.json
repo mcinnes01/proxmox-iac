@@ -3,44 +3,26 @@
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
   
   "features": {
-    "ghcr.io/devcontainers/features/common-utils:2": {
-      "installZsh": false,
-      "configureZshAsDefaultShell": false,
-      "installOhMyZsh": false,
-      "upgradePackages": true,
-      "username": "vscode",
-      "userUid": "automatic",
-      "userGid": "automatic"
-    },
-    "ghcr.io/devcontainers/features/azure-cli:1": {
-      "installBicep": false,
-      "version": "latest"
-    },
+    "ghcr.io/devcontainers/features/common-utils:2": {},
+    "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
       "version": "latest",
       "helm": "latest",
       "minikube": "none"
     },
-    "ghcr.io/devcontainers/features/terraform:1": {
-      "version": "latest",
-      "tflint": "latest",
-      "terragrunt": "none"
-    }
+    "ghcr.io/devcontainers/features/terraform:1": {},
+    "ghcr.io/devcontainers-extra/features/terramate:1": {},
+    "ghcr.io/devcontainers-extra/features/talosctl:1": {},
+    "ghcr.io/goldsam/dev-container-features/flux2:1": {},
+    "ghcr.io/audacioustux/devcontainers/cilium:1": {}
   },
-
-  "mounts": [
-    "source=${localEnv:USERPROFILE}\\.azure,target=/home/vscode/.azure,type=bind,consistency=cached"
-  ],
-
-  "postCreateCommand": "bash .devcontainer/setup.sh",
   
   "customizations": {
     "vscode": {
       "extensions": [
         "HashiCorp.terraform",
         "ms-kubernetes-tools.vscode-kubernetes-tools",
-        "redhat.vscode-yaml",
-        "ms-vscode.makefile-tools"
+        "redhat.vscode-yaml"
       ]
     }
   },

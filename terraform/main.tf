@@ -1,22 +1,3 @@
-# Azure Key Vault for Secrets Management
-module "azure_keyvault" {
-  count  = var.enable_keyvault ? 1 : 0
-  source = "./azure-keyvault"
-
-  tenant_id           = var.azure.tenant_id
-  object_id           = var.azure.object_id
-  location            = var.azure.location
-  resource_group_name = "homelab-keyvault-rg"
-  key_vault_name      = "homelab-secrets-kv"
-  secrets             = var.keyvault_secrets
-
-  tags = {
-    Environment = "homelab"
-    Purpose     = "talos-cluster-secrets"
-    ManagedBy   = "terraform"
-  }
-}
-
 module "talos" {
   source = "./talos"
 

@@ -1,13 +1,3 @@
-# Azure Key Vault Outputs
-output "keyvault_info" {
-  description = "Azure Key Vault information"
-  value = var.enable_keyvault ? {
-    vault_name = module.azure_keyvault[0].key_vault_name
-    vault_uri  = module.azure_keyvault[0].key_vault_uri
-    vault_id   = module.azure_keyvault[0].key_vault_id
-  } : null
-}
-
 # Output the generated configuration files to local files
 resource "local_file" "machine_configs" {
   for_each        = module.talos.machine_config

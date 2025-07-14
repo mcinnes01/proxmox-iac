@@ -34,28 +34,11 @@ terraform {
       source  = "hashicorp/tls"
       version = "4.0.6"
     }
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "4.14.0"
-    }
   }
 
-  # Azure Backend for State Management
-  backend "azurerm" {
-    resource_group_name  = "homelab-state-rg"
-    storage_account_name = "homelabstatestg"
-    container_name       = "tfstate"
-    key                  = "talos-proxmox.tfstate"
-  }
-}
-
-# Azure Provider Configuration
-provider "azurerm" {
-  features {
-    key_vault {
-      purge_soft_delete_on_destroy    = true
-      recover_soft_deleted_key_vaults = true
-    }
+  # Local Backend for State Management
+  backend "local" {
+    path = "terraform.tfstate"
   }
 }
 

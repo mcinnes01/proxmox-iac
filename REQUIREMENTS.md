@@ -2,8 +2,10 @@
 
 ## Core Requirements
 
+• Dev container using features only for the tools we need like terraform, git, flux, talos, kubetctl, helm, proxmox. .sh can be used if there is anything we can install with a feature but ideally all done in features to keep it simple.
+• Before we get the devcontainer running we are on windows, but the files in this repo need linux lineendings as it will be running in the devcontainer once we have it built
+• We should use terramate with terraform and add validation to the terraform. Use tfvar and set default variable values as per the spec in this document
 • Refactor and automate a Talos/Proxmox/Kubernetes homelab deployment using Terraform (no Ansible)
-• All secrets/state managed in Azure Key Vault and Storage Account
 • Use the official Talos and Proxmox Terraform providers (siderolabs/terraform-provider-talos, bpg/terraform-provider-proxmox)
 • Automate initial root password collection to create a Terraform user, API key, and SSH key, then use those for all subsequent runs
 • Use Talos Image Factory (https://factory.talos.dev/) for VM templates
@@ -35,7 +37,6 @@ Primary reference: https://blog.stonegarden.dev/articles/2024/08/talos-proxmox-t
 ## Success Criteria
 - Single command deployment from clean state
 - Fully automated Proxmox → Talos → Kubernetes → Platform Tools → Apps pipeline
-- All state and secrets properly managed in Azure
 - Ceph storage functional and integrated
 - Flux GitOps operational with sample application deployed
 - DevContainer reliably provides all required tools
