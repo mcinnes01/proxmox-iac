@@ -20,8 +20,8 @@ nodes = {
     ip            = "192.168.1.11"
     mac_address   = "BC:24:11:2E:C8:00"
     vm_id         = 800
-    cpu           = 4
-    ram_dedicated = 8192
+    cpu           = 1
+    ram_dedicated = 3072
   }
   "talos-worker-01" = {
     host_node     = "pve"
@@ -29,7 +29,7 @@ nodes = {
     ip            = "192.168.1.1"
     mac_address   = "BC:24:11:2E:C8:01"
     vm_id         = 810
-    cpu           = 4
-    ram_dedicated = 8192
+    cpu           = 3
+    ram_dedicated = 9216
   }
 }
