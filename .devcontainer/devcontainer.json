@@ -1,40 +1,20 @@
 {
-  "name": "Talos Proxmox Homelab - DevOps Tools",
+  "name": "Talos Proxmox Homelab",
   "build": {
     "dockerfile": "Dockerfile"
   },
-
   "mounts": [
     "source=${localEnv:USERPROFILE}\\.azure,target=/home/vscode/.azure,type=bind,consistency=cached"
   ],
-
   "postCreateCommand": "bash .devcontainer/setup.sh",
-  
   "customizations": {
     "vscode": {
       "extensions": [
         "HashiCorp.terraform",
         "ms-kubernetes-tools.vscode-kubernetes-tools",
-        "ms-vscode.vscode-json",
-        "ms-vscode.makefile-tools",
-        "redhat.vscode-yaml",
-        "ms-python.python",
-        "ms-vscode.powershell",
-        "github.copilot",
-        "signageos.signageos-vscode-sops"
-      ],
-      "settings": {
-        "terminal.integrated.defaultProfile.linux": "bash",
-        "terraform.languageServer.enable": true,
-        "terraform.validation.enableEnhancedValidation": true
-      }
+        "redhat.vscode-yaml"
+      ]
     }
   },
-  
-  "remoteUser": "vscode",
-  
-  "containerEnv": {
-    "GIT_EDITOR": "code --wait",
-    "EDITOR": "code --wait"
-  }
+  "remoteUser": "vscode"
 }
