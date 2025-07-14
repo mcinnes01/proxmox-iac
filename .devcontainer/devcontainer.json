@@ -16,9 +16,8 @@
     "ghcr.io/audacioustux/devcontainers/cilium:1": {}
   },
   
-  "postCreateCommand": "curl -fsSL https://releases.hashicorp.com/terraform/1.12.2/terraform_1.12.2_linux_amd64.zip -o terraform.zip && unzip terraform.zip && sudo mv terraform /usr/local/bin/ && rm terraform.zip && terraform version",
-  
-  "customizations": {
+  "postCreateCommand": "sudo rm -rf terraform terraform.zip && curl -fsSL https://releases.hashicorp.com/terraform/1.12.2/terraform_1.12.2_linux_amd64.zip -o terraform.zip && unzip terraform.zip && sudo mv terraform /usr/local/bin/ && rm terraform.zip LICENSE.txt && terraform version",
+    "customizations": {
     "vscode": {
       "extensions": [
         "HashiCorp.terraform",
