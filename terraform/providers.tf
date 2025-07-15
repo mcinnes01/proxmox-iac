@@ -47,11 +47,9 @@ provider "proxmox" {
   endpoint = var.proxmox.endpoint
   insecure = var.proxmox.insecure
 
+  # For API token authentication
+  username = var.proxmox.username
   api_token = var.proxmox.api_token
-  ssh {
-    agent    = true
-    username = var.proxmox.username
-  }
 }
 
 # Kubernetes Provider Configuration (will be configured by Talos module output)
