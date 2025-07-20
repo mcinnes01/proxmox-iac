@@ -25,6 +25,10 @@ id_rsa*
 kubeconfig*
 *.kubeconfig
 
+# Environment variables with secrets
+.env
+terraform/terraform.tfvars
+
 # OS generated files
 .DS_Store
 .DS_Store?
