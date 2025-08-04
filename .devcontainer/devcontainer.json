@@ -2,6 +2,7 @@
   "name": "Talos Proxmox Homelab",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
   
+  // Pre-installed tools: Terraform, Packer, kubectl, Helm, Talos, Flux, Cilium CLI
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {},
     "ghcr.io/devcontainers/features/git:1": {},
@@ -13,7 +14,10 @@
     "ghcr.io/devcontainers-extra/features/terramate:1": {},
     "ghcr.io/devcontainers-extra/features/talosctl:1": {},
     "ghcr.io/goldsam/dev-container-features/flux2:1": {},
-    "ghcr.io/audacioustux/devcontainers/cilium:1": {}
+    "ghcr.io/audacioustux/devcontainers/cilium:1": {},
+    "ghcr.io/devcontainers-extra/features/packer:1": {
+      "version": "latest"
+    }
   },
   
   "postCreateCommand": "sudo rm -rf terraform terraform.zip && curl -fsSL https://releases.hashicorp.com/terraform/1.12.2/terraform_1.12.2_linux_amd64.zip -o terraform.zip && unzip terraform.zip && sudo mv terraform /usr/local/bin/ && rm terraform.zip LICENSE.txt && terraform version",
@@ -21,6 +25,7 @@
     "vscode": {
       "extensions": [
         "HashiCorp.terraform",
+        "hashicorp.hcl",
         "ms-kubernetes-tools.vscode-kubernetes-tools",
         "redhat.vscode-yaml"
       ]

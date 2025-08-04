@@ -36,26 +36,13 @@ This setup creates a complete Kubernetes platform with a single `terraform apply
 - **kubectl** for cluster access
 - **Git** for version control
 
-### Network Layout
+### Network Configuration
 
-| Component | IP Address | DNS Name | Purpose |
-|-----------|------------|----------|---------|
-| UDM Pro | 192.168.1.254 | - | Gateway, DHCP, DNS server |
-| Home Assistant | 192.168.1.1 | home.andisoft.co.uk | MetalLB LoadBalancer service |
-| Worker | 192.168.1.5 | - | Kubernetes worker (3 CPU, 9GB RAM) |
-| Proxmox | 192.168.1.10 | proxmox.andisoft.co.uk | Hypervisor host |
-| Control Plane | 192.168.1.11 | - | Kubernetes master (1 CPU, 3GB RAM) |
-| MetalLB Pool | 192.168.1.20-30 | - | Other LoadBalancer service IPs |
-
-**Total RAM Usage**: 3GB (control) + 9GB (worker) + 4GB (Proxmox) = 16GB
-
-### DNS Configuration
-
-Your UDM Pro (`192.168.1.254`) handles all DNS resolution. Internal DNS entries:
-- `proxmox.andisoft.co.uk` → `192.168.1.10` (Proxmox web interface)
-- `home.andisoft.co.uk` → `192.168.1.1` (Home Assistant via MetalLB)
-
-The Talos nodes will automatically use UDM Pro for DNS via DHCP.
+- **Proxmox Server**: 192.168.1.10
+- **Control Plane**: 192.168.1.11  
+- **Worker Nodes**: 192.168.1.5-7
+- **LoadBalancer Pool**: 192.168.1.50-60
+- **Gateway**: 192.168.1.1
 
 ### Storage Configuration
 
@@ -126,8 +113,9 @@ kubectl get nodes
 │   ├── metallb/           # Load balancer setup
 │   ├── longhorn/          # Storage system
 │   └── flux/              # GitOps with Flux
-└── scripts/               # Essential utilities
-    └── setup-proxmox-auth.sh  # Proxmox user and token setup
+├── scripts/               # Helper scripts
+│   └── setup-proxmox-auth.sh
+└── docs/                  # Documentation
 ```
 
 ## ⚙️ Module Details
@@ -140,7 +128,7 @@ kubectl get nodes
 
 ### `metallb`
 - Configures MetalLB in L2 mode
-- Creates IP address pools: `192.168.1.1` (Home Assistant) + `192.168.1.20-30` (other services)
+- Creates IP address pool (192.168.1.50-60)
 - Enables LoadBalancer services on bare metal
 
 ### `longhorn`
@@ -177,10 +165,9 @@ git_branch = "main"
 ```
 
 ### Resource Allocation
-- **Control Plane**: 1 CPU core, 3GB RAM, 50GB disk
-- **Worker**: 3 CPU cores, 9GB RAM, 40GB disk  
+- **Control Plane**: 4 CPU cores, 4GB RAM, 50GB disk
+- **Workers**: 3 CPU cores, 3GB RAM, 40GB disk
 - **Storage**: Uses your 238GB `storage2` LVM pool
-- **Proxmox Host**: Reserves 4GB RAM for hypervisor
 
 ## 🔍 Monitoring & Operations
 

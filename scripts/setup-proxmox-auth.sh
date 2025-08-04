@@ -111,12 +111,15 @@ check_user_exists() {
 
 # Create terraform user
 create_user() {
-    log "Creating terraform user..."
+    log "Creating terraform user with password..."
     
-    # Create the request body
-    local request_body="userid=${TERRAFORM_USER}&comment=Terraform automation user"
+    # Generate a random password for the terraform user
+    TERRAFORM_PASSWORD=$(openssl rand -base64 32)
     
-    log "DEBUG: Request body: ${request_body}"
+    # Create the request body with password
+    local request_body="userid=${TERRAFORM_USER}&comment=Terraform automation user&password=${TERRAFORM_PASSWORD}"
+    
+    log "DEBUG: Request body: userid=${TERRAFORM_USER}&comment=Terraform automation user&password=***"
     log "DEBUG: URL: ${PROXMOX_ENDPOINT}/api2/json/access/users"
     
     local response
@@ -130,7 +133,8 @@ create_user() {
     
     log "DEBUG: Full response: $response"
     
-    if echo "$response" | jq -e '.data' &> /dev/null; then
+    # Check for success - Proxmox returns {"data":null} on success for user creation
+    if echo "$response" | jq -e '.data' &> /dev/null || echo "$response" | grep -q '"data":null'; then
         success "Terraform user created successfully"
         return 0
     elif echo "$response" | grep -q "already exists"; then
@@ -147,18 +151,44 @@ create_user() {
 set_permissions() {
     log "Setting permissions for terraform user..."
     
-    # Set PVEAdmin permissions on root path
-    log "Setting PVEAdmin role on root path..."
+    # Set Administrator permissions on root path (needed for query-url-metadata API)
+    log "Setting Administrator role on root path..."
     local root_response
     root_response=$(curl -s -k \
         -H "Cookie: PVEAuthCookie=${TICKET}" \
         -H "CSRFPreventionToken: $CSRF_TOKEN" \
         -H "Content-Type: application/x-www-form-urlencoded" \
         -X PUT \
-        -d "users=${TERRAFORM_USER}&roles=PVEAdmin&path=/" \
+        -d "users=${TERRAFORM_USER}&roles=Administrator&path=/" \
         "${PROXMOX_ENDPOINT}/api2/json/access/acl")
     
     log "Root path response: $root_response"
+    
+    # Set permissions on nodes path (needed for query-url-metadata API)
+    log "Setting PVEAdmin role on /nodes..."
+    local nodes_response
+    nodes_response=$(curl -s -k \
+        -H "Cookie: PVEAuthCookie=${TICKET}" \
+        -H "CSRFPreventionToken: $CSRF_TOKEN" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -X PUT \
+        -d "users=${TERRAFORM_USER}&roles=PVEAdmin&path=/nodes" \
+        "${PROXMOX_ENDPOINT}/api2/json/access/acl")
+    
+    log "nodes response: $nodes_response"
+    
+    # Set permissions on specific node path for query-url-metadata
+    log "Setting PVEAdmin role on /nodes/pve..."
+    local node_response
+    node_response=$(curl -s -k \
+        -H "Cookie: PVEAuthCookie=${TICKET}" \
+        -H "CSRFPreventionToken: $CSRF_TOKEN" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -X PUT \
+        -d "users=${TERRAFORM_USER}&roles=PVEAdmin&path=/nodes/pve" \
+        "${PROXMOX_ENDPOINT}/api2/json/access/acl")
+    
+    log "node response: $node_response"
     
     # Set permissions on local-lvm datastore
     log "Setting PVEAdmin role on /storage/local-lvm..."
@@ -185,6 +215,19 @@ set_permissions() {
         "${PROXMOX_ENDPOINT}/api2/json/access/acl")
     
     log "local response: $local_response"
+    
+    # Set permissions on storage2 datastore (our new LVM storage)
+    log "Setting PVEAdmin role on /storage/storage2..."
+    local storage2_response
+    storage2_response=$(curl -s -k \
+        -H "Cookie: PVEAuthCookie=${TICKET}" \
+        -H "CSRFPreventionToken: $CSRF_TOKEN" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -X PUT \
+        -d "users=${TERRAFORM_USER}&roles=PVEAdmin&path=/storage/storage2" \
+        "${PROXMOX_ENDPOINT}/api2/json/access/acl")
+    
+    log "storage2 response: $storage2_response"
     
     success "Permissions set for terraform user on all required paths"
 }
@@ -251,54 +294,56 @@ create_token() {
 
 # Update terraform.tfvars
 update_terraform_vars() {
-    log "Creating terraform.tfvars with API token..."
+    log "Creating terraform.tfvars with Proxmox configuration..."
     
-    local tfvars_file="terraform/terraform.tfvars"
+    local tfvars_file="terraform.tfvars"
     
-    # Create terraform.tfvars from template
+    # Create terraform.tfvars from template with our new variable structure
     cat > "$tfvars_file" << EOF
 # Proxmox Configuration
 # Generated automatically by setup-proxmox-auth.sh
 
-proxmox_api_url = "https://192.168.1.10:8006/api2/json"
-proxmox_username = ""
-proxmox_password = ""
-proxmox_api_token_id = "${TERRAFORM_USER}!${TOKEN_ID}"
-proxmox_api_token_secret = "${API_TOKEN_VALUE}"
+# Proxmox connection details
+proxmox_node_name = "pve"
+proxmox_admin_endpoint = "https://192.168.1.10:8006/api2/json"
+proxmox_username = "${TERRAFORM_USER}"
+proxmox_password = "${TERRAFORM_PASSWORD}"
 proxmox_insecure = true
 
 # Network Configuration
-network_gateway = "192.168.1.254"
-nameserver = "192.168.1.254"
+# Gateway/DNS: 192.168.1.254 (UDM Pro - handles routing and DNS)
+# Proxmox: 192.168.1.10 → proxmox.andisoft.co.uk (internal DNS)
+# Home Assistant: 192.168.1.1 → home.andisoft.co.uk (future MetalLB service)
+proxmox_vms_default_gateway = "192.168.1.254"
 
-# Proxmox Node Settings
-proxmox_node = "gateway"
-vm_datastore = "local-lvm"
-
-# Enable Talos cluster
-enable_talos_cluster = true
-EOF
-    
-    success "terraform.tfvars created with API token"
+# VM Configuration
+proxmox_vms_talos = {
+  controller1 = { 
+    id = 100, 
+    ip = "192.168.1.11/24", 
+    controller = true,
+    cpu_cores = 1,
+    memory_mb = 3072  # 3GB RAM
+  }
+  worker1 = { 
+    id = 110, 
+    ip = "192.168.1.5/24",
+    cpu_cores = 3,
+    memory_mb = 9216  # 9GB RAM
+  }
 }
 
-# Store token as environment variable for DevContainer
-store_token_as_env() {
-    log "Storing API token as environment variable..."
+# MetalLB Load Balancer IP Pool
+# Includes 192.168.1.1 for Home Assistant (home.andisoft.co.uk)
+# Range 192.168.1.20-30 for other services (ingress, databases, etc.)
+metallb_pool_addresses = "192.168.1.1-192.168.1.1,192.168.1.20-192.168.1.30"
+
+# Optional: GitOps Configuration (uncomment to enable Flux)
+# git_repository = "https://github.com/your-username/homelab-gitops"
+# git_branch = "main"
+EOF
     
-    # Create or update .env file for the project
-    local env_file=".env"
-    
-    if [[ -f "$env_file" ]]; then
-        # Remove existing PROXMOX_API_TOKEN line
-        sed -i '/^PROXMOX_API_TOKEN=/d' "$env_file"
-    fi
-    
-    # Append new token
-    echo "PROXMOX_API_TOKEN=${API_TOKEN_FULL}" >> "$env_file"
-    
-    success "API token stored in .env file"
-    log "Add .env to your .gitignore to keep the token secure"
+    success "terraform.tfvars created with API token and network configuration"
 }
 
 # Main execution
@@ -317,30 +362,64 @@ main() {
             exit 1
         fi
     else
-        log "Terraform user already exists"
+        log "Terraform user already exists, setting password..."
+        # Generate new password for existing user
+        TERRAFORM_PASSWORD=$(openssl rand -base64 32)
+        
+        # Use the password endpoint to set password
+        local update_response
+        update_response=$(curl -s -k \
+            -H "Cookie: PVEAuthCookie=${TICKET}" \
+            -H "CSRFPreventionToken: ${CSRF_TOKEN}" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -X PUT \
+            -d "password=${TERRAFORM_PASSWORD}" \
+            "${PROXMOX_ENDPOINT}/api2/json/access/password")
+        
+        log "Password update response: $update_response"
+        
+        # Alternative: delete and recreate user with password
+        if ! echo "$update_response" | jq -e '.data' &> /dev/null; then
+            log "Password update failed, deleting and recreating user..."
+            
+            # Delete existing user
+            local delete_response
+            delete_response=$(curl -s -k \
+                -X DELETE \
+                -H "Cookie: PVEAuthCookie=${TICKET}" \
+                -H "CSRFPreventionToken: ${CSRF_TOKEN}" \
+                "${PROXMOX_ENDPOINT}/api2/json/access/users/${TERRAFORM_USER}")
+            
+            log "User deletion response: $delete_response"
+            
+            # Recreate user with password
+            if ! create_user; then
+                error "Failed to recreate user"
+                exit 1
+            fi
+        else
+            success "Terraform user password updated successfully"
+        fi
     fi
     
     # Always set permissions to ensure they're correct
     log "Setting/updating permissions..."
     set_permissions
     
-    # Always regenerate API token to ensure we have a fresh one
-    if check_token_exists; then
-        log "API token exists, regenerating for fresh credentials..."
-        delete_token
-    fi
-    
-    create_token
     update_terraform_vars
-    store_token_as_env
     
     success "Proxmox Terraform setup completed!"
     success "✅ User: ${TERRAFORM_USER}"
-    success "✅ Token ID: ${TOKEN_ID}"
-    success "✅ Token stored in terraform.tfvars and .env"
+    success "✅ Authentication: Username/Password (avoiding API token limitations)"
+    success "✅ Configuration stored in terraform.tfvars"
+    success "✅ Permissions set for all storage pools (local, local-lvm, storage2)"
     success "✅ Using IP address (192.168.1.10) for reliable infrastructure access"
-    success "🌐 DNS (proxmox.andisoft.co.uk) available for user convenience"
-    success "You can now run 'terraform plan' to test the configuration."
+    success ""
+    success "🚀 Next steps:"
+    success "   1. Review and modify terraform.tfvars if needed"
+    success "   2. Run 'terraform init' to initialize"
+    success "   3. Run 'terraform plan' to preview changes"
+    success "   4. Run 'terraform apply' to deploy your cluster"
 }
 
 # Run main function

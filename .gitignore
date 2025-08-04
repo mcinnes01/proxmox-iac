@@ -22,8 +22,14 @@ provider.tf
 id_rsa*
 .ssh/
 *.pub
+
+# Kubernetes and Talos config files (generated during deployment)
 kubeconfig*
 *.kubeconfig
+kubeconfig.yaml
+talosconfig*
+*.talosconfig
+talosconfig.yaml
 
 # Environment variables with secrets
 .env
@@ -50,3 +56,15 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Terraform variable files with sensitive data
+terraform.tfvars
+*.auto.tfvars
+
+# Backup files
+*.backup
+*.bak
+
+# Machine-generated certificates and keys
+*.crt
+*.csr

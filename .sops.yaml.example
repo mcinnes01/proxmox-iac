@@ -1,8 +1,0 @@
-# SOPS configuration for age encryption
-# Replace with your actual age public key
-
-creation_rules:
-  - path_regex: \.sops\.yaml$
-    age: age1ql3z7hjy54pw9hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
-  - path_regex: \.sops\.yml$
-    age: age1ql3z7hjy54pw9hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
