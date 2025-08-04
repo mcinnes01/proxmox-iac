@@ -55,3 +55,42 @@ variable "git_branch" {
   description = "Git branch for Flux GitOps"
   default = "main"
 }
+
+# GitHub App configuration for Flux authentication
+variable "github_token" {
+  type = string
+  description = "GitHub personal access token for creating GitHub App"
+  sensitive = true
+  default = ""
+}
+
+variable "github_app_name" {
+  type = string
+  description = "Name for the GitHub App (will be created automatically)"
+  default = "flux-homelab-app"
+}
+
+variable "github_app_id" {
+  type = string
+  description = "GitHub App ID (from manually created app)"
+  default = ""
+}
+
+variable "github_app_installation_id" {
+  type = string
+  description = "GitHub App Installation ID (from manually created app)"
+  default = ""
+}
+
+variable "github_app_private_key" {
+  type = string
+  description = "GitHub App private key in PEM format (from manually created app)"
+  sensitive = true
+  default = ""
+}
+
+variable "flux_path" {
+  type = string
+  description = "Path in repository where Flux manifests are stored"
+  default = "./flux"
+}

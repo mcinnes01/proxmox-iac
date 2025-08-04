@@ -32,6 +32,10 @@ terraform {
       source  = "fluxcd/flux"
       version = "1.4.0"
     }
+    github = {
+      source  = "integrations/github"
+      version = "~> 6.0"
+    }
   }
   required_version = ">= 1.0"
 }
@@ -49,4 +53,9 @@ provider "helm" {
   kubernetes {
     config_path = "${path.root}/kubeconfig.yaml"
   }
+}
+
+# GitHub provider for creating GitHub App
+provider "github" {
+  token = var.github_token
 }

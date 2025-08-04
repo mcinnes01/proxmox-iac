@@ -35,5 +35,19 @@ proxmox_vms_talos = {
 metallb_pool_addresses = "192.168.1.1-192.168.1.1,192.168.1.20-192.168.1.30"
 
 # GitOps configuration (optional - leave empty to skip Flux setup)
-git_repository = ""  # Set to your GitOps repo URL if you want Flux
+git_repository = ""  # Set to "https://github.com/mcinnes01/proxmox-iac" to enable Flux
 git_branch = "main"
+
+# GitHub token for creating GitHub App (required for Terraform to create the app)
+# Create at: https://github.com/settings/tokens (Classic token)
+# Required permissions: admin:repo_hook, repo
+github_token = ""  # Your GitHub Personal Access Token
+
+# GitHub App configuration (automatically filled by Terraform, or manual override)
+github_app_name = "flux-homelab-app"
+github_app_id = ""              # Auto-filled by Terraform
+github_app_installation_id = "" # Auto-filled by Terraform  
+github_app_private_key = ""     # Auto-filled by Terraform
+
+# Path in repository where Flux manifests are stored
+flux_path = "./flux"

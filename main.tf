@@ -1,3 +1,12 @@
+# Create GitHub App for Flux authentication (only if git_repository is provided)
+module "github_app" {
+  source = "./modules/github_app"
+  count  = var.git_repository != "" && var.github_token != "" ? 1 : 0
+
+  app_name        = var.github_app_name
+  repository_name = "proxmox-iac"  # This repository
+}
+
 module "proxmox_talos" {
   source = "./modules/proxmox_talos"
 
@@ -48,6 +57,19 @@ module "flux" {
   flux_version = "2.4.0"
   git_repository = var.git_repository
   git_branch = var.git_branch
+  flux_path = var.flux_path
+
+  # GitHub App credentials (automatically created by Terraform)
+  github_app_id = length(module.github_app) > 0 ? module.github_app[0].app_id : var.github_app_id
+  github_app_installation_id = length(module.github_app) > 0 ? module.github_app[0].installation_id : var.github_app_installation_id
+  github_app_private_key = length(module.github_app) > 0 ? module.github_app[0].private_key_pem : var.github_app_private_key
+
+  depends_on = [
+    time_sleep.wait_for_cluster,
+    local_file.kubeconfig,
+    module.flannel,
+    module.github_app
+  ]
 }
 
 # Save kubeconfig and talosconfig files automatically
